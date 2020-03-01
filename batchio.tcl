@@ -141,7 +141,7 @@ proc batchio::doFile {mainProc noact pdirN root finp odir rm} {
     set pdir $dinp
     puts " Input directory : $dinp"
   }
-  set fdisp ...[string range $fout [string length $dout] end]
+  set fdisp "...[string range $fout [string length $dout] end]"
   append fdisp [string repeat " " 80]
   puts -nonewline "     Output file : [string range $fdisp 0 38]"
   if { "[file normalize $finp]" eq "[file normalize $fout]" } {
