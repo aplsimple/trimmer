@@ -12,25 +12,24 @@
 
 namespace eval batchio {
 
-  variable _ruff_preamble "
- Processes a batch of input files to make appropriate output files.
+  variable SynShown false
+  variable _ruff_preamble {
+ Processing a batch of input files to make appropriate output files.
 
  ## Usage
 
-     tclsh script.tcl ?-i idir|ifile? ?-o odir? ?-r? ?-f? ?-n? ?--? ?app args?
+     tclsh script.tcl [-i idir|ifile] [-o odir] [-r] [-f] [-n] [--] [app args]
 
   where
  
   *script.tcl* is a Tcl script sourcing *batchio.tcl* to call its 'main' proc
 
-  \"?\" means *optional argument*
-
   arguments are:
 
-    idir  - a directory of files to be processed (by default *idir* is .)
-    ifile - a file listing files to be processed (# / empty lines are skipped)
-    odir  - a directory of resulting files  (by default *odir* is ../release)
-    app   - an application to be run after processing
+    idir  - a directory of files to process (by default ./)
+    ifile - a file listing .tcl files       (#-comments disregarded)
+    odir  - a directory of resulting files  (by default ../release)
+    app   - an application to be run after trimming
     args  - optional arguments of *app*
 
  The -i (or --input) can be multiple, -o (or --output) can not.
@@ -45,13 +44,12 @@ namespace eval batchio {
 
  Example:
 
-     tclsh trim.tcl -i ./lib -o ./bin tclsh ./bin/main.tcl arg1 \"arg 2\"
+     tclsh trim.tcl -i ./lib -o ./bin tclsh -f ./bin/main.tcl arg1 "arg 2"
 
  ## License
 
-  MIT.
-"
-  variable SynShown false
+ MIT.}
+
 }
 
 ###########################################################################
@@ -65,12 +63,11 @@ proc batchio::synopsis {} {
 
   variable SynShown
   if {$SynShown} exit {set SynShown true}
-  if {[info exist [namespace parent]::_ruff_preamble]} {
-    puts [set [namespace parent]::_ruff_preamble]
-  } else {
-    variable _ruff_preamble
-    puts $_ruff_preamble
+  set preamble [namespace parent]::_ruff_preamble
+  if {![info exist $preamble]} {
+    set preamble [namespace current]::_ruff_preamble
   }
+  puts [string map [list \\\{ \{] [set $preamble]]\n
 }
 
 ###########################################################################
@@ -102,16 +99,17 @@ proc batchio::onError { {err ""} {doexit true}} {
 
 ###########################################################################
 
-proc batchio::doFile {mainProc noact pdirN root finp odir rm} {
+proc batchio::doFile {procN noact pdirN root finp odir rm args} {
 
-  # Processes an input file, writes a result to an output file.
-  #   mainProc - procedure to process an input file to make an output file
+  # Prepares and does a call of procedure to process two files.
+  #   procN - name of procedure to process two files
   #   noact - if true, no output file
   #   pdirN - variable's name of previous input directory
   #   root  - root of input directory
   #   finp  - input file
   #   odir  - output directory
   #   rm    - flag 'rewrite the existing output file or not'
+  #   args  - other arguments
   #
   # If *noact* is true, no outputs are actually made (to show only).
   #
@@ -155,7 +153,7 @@ proc batchio::doFile {mainProc noact pdirN root finp odir rm} {
   puts ""
   if {$noact} return
   catch {file mkdir [file dirname $fout]}
-  $mainProc $finp $fout
+  $procN $finp $fout {*}$args
 }
 
 ###########################################################################
@@ -245,11 +243,12 @@ proc batchio::getInputFilesList {ilistN idir globPatt recursive} {
 
 ###########################################################################
 
-proc batchio::main {mainProc globPatt args} {
+proc batchio::main {procN globPatt options args} {
 
   # Main procedure of batchio.
-  #   mainProc - procedure to process an input file to make an output file
+  #   procN - name of procedure to process two files
   #   globPatt - glob pattern for files to be processed
+  #   options  - list of {opt optshort}, additional options
   #   args - arguments passed to script.tcl, containing switches and values:
   #   -i   - (or --input) input directory or file of processed list
   #   -o   - (or --output) output directory
@@ -267,7 +266,7 @@ proc batchio::main {mainProc globPatt args} {
   # get arguments and check if the arguments are correct
   set mydir [file dirname [info script]]
   set err [set remove [set recursive [set noact false]]]
-  lassign "" iopt odir mfile margs
+  lassign "" iopt odir mfile margs addargs
   for {set i 0} {$i<$ac} {incr i} {
     lassign [lrange $args $i end] opt val
     if {$opt eq "--"} {
@@ -298,11 +297,25 @@ proc batchio::main {mainProc globPatt args} {
            if {$noact} { onError "--no argument duplicated" }
            set noact true
            }
-        default { set mfile $opt }
+        default {
+          set isapp true
+          set i2 0
+          foreach {o osh} $options {
+            if {$opt in "$o $osh"} {
+              set isapp false
+              lset options $i2 {}
+              lappend addargs $val
+              incr i
+              break
+            }
+            incr i2
+          }
+          if {$isapp} { set mfile $opt }
+        }
       }
     }
   }
-  if {$iopt eq ""} { set iopt . }
+  if {$iopt eq ""} { set iopt ./ }
   if {$odir eq ""} { set odir ../release }
   set odir [file normalize $odir]
   if {[file isfile $odir]} { onError "\"$odir\" is not a directory." }
@@ -327,22 +340,26 @@ proc batchio::main {mainProc globPatt args} {
     if {$rt ne ""} { set root $rt }
     set fin [file normalize $fin]
     if {[file isfile $fin]} {
-      doFile $mainProc $noact pdir $root $fin $odir $remove
+      doFile $procN $noact pdir $root $fin $odir $remove {*}$addargs
     }
   }
   underLine
   
   # run a command if set
-  if {$mfile ne ""} {
-    set dispargs ""
-    foreach a $margs {
-      if {[llength $a]>1} {set a "\"$a\""}
-      append dispargs "$a "
+  set dispargs ""
+  foreach a $margs {
+    if {[llength $a]>1} {set a "\"$a\""}
+    append dispargs "$a "
+  }
+  if {$noact} {
+    puts " Supposed run: \"$mfile\" $dispargs"
+  } elseif {$mfile ne ""} {
+    set err ""
+    if {[set comm [auto_execok $mfile]] eq ""} {
+      set err " Not found: $mfile"
     }
-    if {$noact} {
-      puts " Supposed run: \"$mfile\" $dispargs"
-    } elseif {[catch {exec {*}[auto_execok $mfile] {*}$margs }]} {
-      onError "Can't execute:\n   \"$mfile\" $dispargs" 0
+    if {$err ne "" || [catch {exec {*}$comm {*}$margs } err]} {
+      onError "Run:\n   \"$mfile\" $dispargs\n$err" 0
     }
   }
 }

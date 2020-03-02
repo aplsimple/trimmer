@@ -1,33 +1,50 @@
 #! /usr/bin/env tclsh
 #
-# This is an example of code that uses "supposed comments" in switch
-# command and as such is not working. Disregarding this difference and
-# this comment, the trim_test.tcl is the same as the trim.tcl.
+# This utility trims a Tcl source file off comments & needless whitespaces.
+# See _ruff_preamble below for details.
 #
-# So, the trim_test.tcl would work only after being undergone the trimming.
-#
-# In other words, the trimmed trim_test.tcl equals to the trimmed trim.tcl.
+# License: MIT.
 #
 ###########################################################################
 
-package provide trimmer 1.0
+# Below is an example of code that uses "supposed comments" in switch and
+# list commands and as such is not working. Disregarding this difference
+# and this comment, the trim_test.tcl is the same as the trim.tcl.
+#
+# So, the trim_test.tcl would work only after being undergone the trimming.
+#
+# In other words, the trimmed trim_test.tcl works as well as the trim.tcl.
+
+  switch a {
+    # it's a supposed comment that makes an error
+    b {}
+    c {}
+  }
+
+  set l [list \
+    # it's a supposed comment that makes an error
+    a b c]
+
+###########################################################################
+
+package provide trimmer 1.1
 
 namespace eval trimmer {
 
   source "[file dirname [info script]]/batchio.tcl"
 
-  variable _ruff_preamble "
+  variable _ruff_preamble {
  Trimming a Tcl source file off comments and whitespaces.
 
  ## Usage
 
-     tclsh trim.tcl ?-i idir|ifile? ?-o odir? ?-r? ?-f? ?-n? ?--? ?app args?
+     tclsh trim.tcl [-i idir|ifile] [-o odir] [-r] [-f] [-n] [--] [app args]
 
- where \"?\" means *optional argument* and the arguments are:
+ where:
 
-    idir  - a directory of files to process (by default *idir* is .)
-    ifile - a file listing .tcl files       (# / empty lines are skipped)
-    odir  - a directory of resulting files  (by default *odir* is ../release)
+    idir  - a directory of files to process (by default ./)
+    ifile - a file listing .tcl files       (#-comments disregarded)
+    odir  - a directory of resulting files  (by default ../release)
     app   - an application to be run after trimming
     args  - optional arguments of *app*
 
@@ -45,48 +62,51 @@ namespace eval trimmer {
 
  Example:
 
-     tclsh trim.tcl -i ./lib -o ./bin tclsh ./bin/main.tcl arg1 \"arg 2\"
+     tclsh trim.tcl -i ./lib -o ./bin tclsh -f ./bin/main.tcl arg1 "arg 2"
 
  ## Limitations
 
  The *trim.tcl* sets the following limitations for the code processed:
 
- **1.** Multi-line strings should be double-quoted (not braced),
-  because the braced strings would be trimmed, e.g.
+ **1.** In general, multi-line strings should be double-quoted (not braced),
+  because the braced strings would be trimmed. But there are two important
+  exceptions: when *set* and *variable* commands use a braced string, it
+  is not trimmed, e.g.
 
-     set str1 \"
-        Correct\"      ;# equals to \"\\n    Correct\"
-     set str2 {
-         Not correct}  ;# equals to \"Not correct\"
+     set str1 {
+        Correct}       ;# equals to set str1 "\n    Correct"
+     variable str2 {
+        Correct}       ;# equals to variable str2 "\n    Correct"
+     puts {
+         Not correct}  ;# equals to puts "Not correct"
 
-
- **2.** Comments after \"\{\" should begin with \";#\", e.g.
+ **2.** Comments after "\{" should begin with ";#", e.g.
 
      while {true} {  ;# infinite cycle
      }
 
 
- **3.** *List* or *switch* commands can contain comments (lines beginning
-  with # or ;#) which are not considered to be meaningful items, e.g.
+ **3.** *List* or *switch* commands can contain comments which are not
+  considered to be meaningful items, e.g.
 
-     switch \$option {
-        ;# it's a comment (and the error in standard Tcl switch)
+     switch $option {
+        # it's a comment (and the error in standard Tcl switch)
         -opt1 {
-          puts \"-opt1 processed\"
+          puts "-opt1 processed"
         }
-        -opt2 {
-          puts \"-opt2 processed\"
-        }
+        # ...
      }
 
  The 1st limitation is rarely encountered and easily overcome with
- \\n escape sequences.
+ \n escape sequences.
 
  The last two limitations are actually the advantages of the utility.
+
  The 2nd requires a bit more discipline of coders.
+
  The 3rd eliminates Tcl comment freaks.
 
- For example, compare the behavior of *trim.tcl* and *trim_test.tcl*:
+ The *trim.tcl* and *trim_test.tcl* set examples of this in action:
 
      tclsh trim.tcl -f -o trimmed
 
@@ -98,8 +118,8 @@ namespace eval trimmer {
 
  ## License
 
-  MIT.
-"
+ MIT.}
+
 }
 
 ###########################################################################
@@ -131,11 +151,12 @@ proc trimmer::countChar {str char} {
 
 ###########################################################################
 
-proc trimmer::trimFile { finp fout} {
+proc trimmer::trimFile {finp fout args} {
 
   # Trims an input file and writes a result to an output file.
   #   finp - input file name
   #   fout - output file name
+  #   args - additional parameters (so far not used)
 
   if { [catch {set chani [open "$finp" "r"]} e] } {
     batchio::onError $e 0
@@ -147,11 +168,28 @@ proc trimmer::trimFile { finp fout} {
     return
   }
   set brace -1
-  set nquote 0
+  set nquote [set sbrc [set clines 0]]
   while {[gets $chani line] >= 0} {
     if {$nquote} {
       set ic -1
     } else {
+      if {!$sbrc} { ;# find string braced
+        foreach cmd {set variable} {
+          if {[set sbrc [regexp "^\\s*$cmd\\s+\\S+\\s+\{" $line]]} {
+            set line [string trimleft $line]
+            puts $chano ""
+            set cbrc 0
+            break
+          }
+        }
+      }
+      if {$sbrc} {
+        incr cbrc [expr { [trimmer::countChar $line \{] - \
+                          [trimmer::countChar $line \}] }]
+        if {$cbrc<=0} { set sbrc 0 }
+        puts $chano $line
+        continue
+      }
       set line [string trimleft $line]
       if {$brace>=0 && ($line=="" || [string range $line 0 0]=="#")} continue
       set ic [string first ";#" $line]
@@ -195,21 +233,11 @@ proc trimmer::trimFile { finp fout} {
 # main program huh
 
 if {[info exist ::argv0] && $::argv0==[info script]} {
-  #########################################################
-  # testing Tcl comment freaks:
-  switch a {
-    # it's a supposed comment that makes an error
-    b {}
-    c {}
-  }
-  set l [list \
-    # it's a supposed comment that makes an error
-    a b c]
-  #########################################################
-  trimmer::batchio::main trimmer::trimFile *.tcl {*}$::argv
+  trimmer::batchio::main trimmer::trimFile *.tcl {} {*}$::argv
 }
 
 #-ARGS0:
+#-ARGS0: -f
 #-ARGS0: -i .tmp/flist.txt -i . -r
 #ARGS1: -n -i .tmp/flist.txt -i . -r the-nonexisting-command arg1 "arg 2"
 #-ARGS2: -n -r -o ../tmp
