@@ -27,7 +27,7 @@
 
 ###########################################################################
 
-package provide trimmer 1.1
+package provide trimmer 1.2
 
 namespace eval trimmer {
 
@@ -167,56 +167,49 @@ proc trimmer::trimFile {finp fout args} {
     batchio::onError $e 0
     return
   }
-  set brace -1
-  set nquote [set sbrc [set clines 0]]
+  set brace [set braceST -1]
+  set nquote 0
   while {[gets $chani line] >= 0} {
     if {$nquote} {
-      set ic -1
+      set ic -1  ;# multi-line quoted string
     } else {
-      if {!$sbrc} { ;# find string braced
+      if {$braceST<1} {  ;# check a braced string at some important commands
         foreach cmd {set variable} {
-          if {[set sbrc [regexp "^\\s*$cmd\\s+\\S+\\s+\{" $line]]} {
-            set line [string trimleft $line]
-            puts $chano ""
+          if {[set braceST [regexp "^\\s*$cmd\\s+\\S+\\s+\{" $line]]} {
+            set line "\n[string trimleft $line]"
             set cbrc 0
             break
           }
         }
       }
-      if {$sbrc} {
-        incr cbrc [expr { [trimmer::countChar $line \{] - \
-                          [trimmer::countChar $line \}] }]
-        if {$cbrc<=0} { set sbrc 0 }
-        puts $chano $line
-        continue
+      if {$braceST>0} {  ;# check matching left/right braces
+        incr cbrc [expr {[countChar $line \{] - [countChar $line \}]}]
+        if {$cbrc<=0} {
+          set brace [set braceST -1]
+        } else {
+          puts $chano $line
+          continue
+        }
       }
-      set line [string trimleft $line]
-      if {$brace>=0 && ($line=="" || [string range $line 0 0]=="#")} continue
-      set ic [string first ";#" $line]
-      if {[trimmer::countChar [string range $line 0 $ic] \"] % 2} {
-        set ic -1  ;# the ";#" occurs in 1st string: don't look at the rest
-      }
+      set line [string trimleft $line " \t"]
+      if {$brace>=0 && [string index $line 0] in {"" "#"}} continue
+      set ic [string first ";#" $line]   ;# if ;# in string, ignore the rest
+      if {[countChar [string range $line 0 $ic] \"] % 2} { set ic -1 }
     }
-    if {$ic==0} continue
+    if {$ic==0} continue  ;# for comments beginning with ";#" 
     if {$ic>0} { set line [string range $line 0 [expr {$ic-1}]] }
     set line [string trimright $line]
     set prevbrace $brace
-    if {$line=="\}"} {set brace 1} {set brace 0}
-    if {$prevbrace!=-1 && (($prevbrace==1 && !$brace) ||
-    (!$prevbrace && !$brace)) } {
-      puts $chano ""
+    set brace [expr {$line eq "\}" ? 1 : 0}]
+    if {($prevbrace==1 || $prevbrace==0) && !$brace} { puts $chano "" }
+    if {[set _ [expr {[countChar $line \"] % 2}]]} {
+      set nquote [expr {!$nquote}]
     }
-    if {[set nqtmp [expr {[trimmer::countChar $line \"] % 2}]] && !$nquote} {
-      set nquote 1
-    } elseif {$nqtmp && $nquote} {
-      set nquote 0
-    }
-    set eos [string range $line end end]
-    if {$eos=="\{"} {
-      set brace 2 
-    } elseif {$eos=="\\"} {
-      set brace 2
-      if {$nquote} {
+    if {[set _ [string index $line end]] eq "\{"} {
+      set brace 2           ;# line ending with \{ will join with next line
+    } elseif {$_ eq "\\"} {
+      set brace 2           ;# line ending with \ will join with next line
+      if {$nquote} {        ;# but "\" should be removed
         set line [string range $line 0 end-1]
       } else {
         set line "[string trimright [string range $line 0 end-1]] "
@@ -224,7 +217,7 @@ proc trimmer::trimFile {finp fout args} {
     }
     puts -nonewline $chano $line
   }
-  puts $chano "\n#trimmed"
+  puts $chano "\n#by trimmer"
   close $chani
   close $chano
 }
@@ -232,14 +225,14 @@ proc trimmer::trimFile {finp fout args} {
 ###########################################################################
 # main program huh
 
-if {[info exist ::argv0] && $::argv0==[info script]} {
+if {[info exist ::argv0] && $::argv0 eq [info script]} {
   trimmer::batchio::main trimmer::trimFile *.tcl {} {*}$::argv
 }
 
 #-ARGS0:
 #-ARGS0: -f
 #-ARGS0: -i .tmp/flist.txt -i . -r
-#ARGS1: -n -i .tmp/flist.txt -i . -r the-nonexisting-command arg1 "arg 2"
+#-ARGS1: -n -i .tmp/flist.txt -i . -r the-nonexisting-command arg1 "arg 2"
 #-ARGS2: -n -r -o ../tmp
 #-ARGS3: -n -o ../tmp
 #-ARGS4: -n -r
