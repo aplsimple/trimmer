@@ -26,21 +26,21 @@ namespace eval batchio {
 
   arguments are:
 
-    idir  - a directory of files to process (by default ./)
-    ifile - a file listing .tcl files       (#-comments disregarded)
-    odir  - a directory of resulting files  (by default ../release)
-    app   - an application to be run after trimming
-    args  - optional arguments of *app*
+    -i idir - a directory of files to process (by default ./)
+    -i ifile - a file listing .tcl files (#-comments disregarded)
+    -o odir - a directory of resulting files (by default ../release)
+    app - an application to be run after trimming
+    args - optional arguments of *app*
 
- The -i (or --input) can be multiple, -o (or --output) can not.
+ The `-i` (or `--input`) can be multiple, `-o` (or `--output`) can not.
 
- If -r (or --recursive) is set, the input directories are processed
- recursively. By default, they are processed non-recursively.
+ The command switches mean:
 
- If -f (or --force) is set, the existing output file(s) will be rewritten.
- By default, the script.tcl doesn't rewrite the existing file(s).
+  * If `-r` (or `--recursive`) is set, the input directories are processed recursively. By default, they are processed non-recursively.
 
- If -n (or --no) is set, no real changes made, supposed changes shown only.
+  * If `-f` (or `--force`) is set, the existing output file(s) will be rewritten. By default, the *trim.tcl* doesn't rewrite the existing file(s).
+
+  * If `-n` (or `--no`) is set, no real changes made, supposed changes shown only.
 
  Example:
 

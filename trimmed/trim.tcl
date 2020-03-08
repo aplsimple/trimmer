@@ -1,5 +1,5 @@
 #! /usr/bin/env tclsh
-package provide trimmer 1.1
+package provide trimmer 1.2
 namespace eval trimmer {source "[file dirname [info script]]/batchio.tcl"
 variable _ruff_preamble {
  Trimming a Tcl source file off comments and whitespaces.
@@ -10,21 +10,21 @@ variable _ruff_preamble {
 
  where:
 
-    idir  - a directory of files to process (by default ./)
-    ifile - a file listing .tcl files       (#-comments disregarded)
-    odir  - a directory of resulting files  (by default ../release)
-    app   - an application to be run after trimming
-    args  - optional arguments of *app*
+    -i idir - a directory of files to process (by default ./)
+    -i ifile - a file listing .tcl files (#-comments disregarded)
+    -o odir - a directory of resulting files (by default ../release)
+    app - an application to be run after trimming
+    args - optional arguments of *app*
 
- The -i (or --input) can be multiple, -o (or --output) can not.
+ The `-i` (or `--input`) can be multiple, `-o` (or `--output`) can not.
 
- If -r (or --recursive) is set, the input directories are processed
- recursively. By default, they are processed non-recursively.
+ The command switches mean:
 
- If -f (or --force) is set, the existing output file(s) will be rewritten.
- By default, the trim.tcl doesn't rewrite the existing file(s).
+  * If `-r` (or `--recursive`) is set, the input directories are processed recursively. By default, they are processed non-recursively.
 
- If -n (or --no) is set, no real changes made, supposed changes shown only.
+  * If `-f` (or `--force`) is set, the existing output file(s) will be rewritten. By default, the *trim.tcl* doesn't rewrite the existing file(s).
+
+  * If `-n` (or `--no`) is set, no real changes made, supposed changes shown only.
 
  The *trim.tcl* by no means changes the input file(s).
 
@@ -41,12 +41,18 @@ variable _ruff_preamble {
   exceptions: when *set* and *variable* commands use a braced string, it
   is not trimmed, e.g.
 
+     set str1 "
+        Correct"       ;# equals to set str1 "\n   Correct"
      set str1 {
-        Correct}       ;# equals to set str1 "\n    Correct"
+        Correct}       ;# equals to set str1 "\n   Correct"
+     variable str2 "
+        Correct"       ;# equals to variable str2 "\n   Correct"
      variable str2 {
-        Correct}       ;# equals to variable str2 "\n    Correct"
+        Correct}       ;# equals to variable str2 "\n   Correct"
+     puts "
+        Correct"       ;# equals to puts "\n   Correct"
      puts {
-         Not correct}  ;# equals to puts "Not correct"
+         NOT CORRECT}  ;# equals to puts "NOT CORRECT"
 
  **2.** Comments after "\{" should begin with ";#", e.g.
 
