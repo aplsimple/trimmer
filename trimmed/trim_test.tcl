@@ -2,7 +2,7 @@
 switch a {b {}
 c {}}
 set l [list a b c]
-package provide trimmer 1.2
+package provide trimmer 1.3
 namespace eval trimmer {source "[file dirname [info script]]/batchio.tcl"
 variable _ruff_preamble {
  Trimming a Tcl source file off comments and whitespaces.
@@ -81,7 +81,7 @@ variable _ruff_preamble {
 
  The 2nd requires a bit more discipline of coders.
 
- The 3rd eliminates Tcl comment freaks.
+ The 3rd eliminates Tcl comment freaks, incl. unmatched braces.
 
  The *trim.tcl* and *trim_test.tcl* set examples of this in action:
 
@@ -108,31 +108,35 @@ return}
 if { [catch {set chano [open "$fout" "w"]} e] } {close $chani
 batchio::onError $e 0
 return}
-set brace [set braceST -1]
+set brace [set braceST [set ccmnt -2]]
 set nquote 0
 while {[gets $chani line] >= 0} {if {$nquote} {set ic -1
-} else {if {$braceST<1} {foreach cmd {set variable} {if {[set braceST [regexp "^\\s*$cmd\\s+\\S+\\s+\{" $line]]} {set line "\n[string trimleft $line]"
+} else {if {$braceST<1} {foreach {cmd a1} {set "\\S" variable "\\S"} {if {[set braceST [regexp "^\\s*$cmd\\s+$a1+\\s+\{" $line]]} {set line "\n[string trimleft $line]"
 set cbrc 0
 break}}}
-if {$braceST>0} {incr cbrc [expr {[countChar $line \{] - [countChar $line \}]}]
+if {$braceST>0} {incr cbrc [expr {[countChar $line "\{"] - [countChar $line "\}"]}]
 if {$cbrc<=0} {set brace [set braceST -1]
 } else {puts $chano $line
 continue}}
+if {[regexp "^\\s*;*#" $line] || $ccmnt} {set cc [expr {[string index $line end] eq "\\"}]
+if {($ccmnt || $cc) && $brace<-1} { puts $chano $line }
+set ccmnt $cc
+continue}
 set line [string trimleft $line " \t"]
-if {$brace>=0 && [string index $line 0] in {"" "#"}} continue
+if {$line eq ""} continue
 set ic [string first ";#" $line]   ;# if ;# in string, ignore the rest
-if {[countChar [string range $line 0 $ic] \"] % 2} { set ic -1 }}
+if {[countChar [string range $line 0 $ic] "\""] % 2} { set ic -1 }}
 if {$ic==0} continue
-if {$ic>0} { set line [string range $line 0 [expr {$ic-1}]] }
+if {$ic>0} { set line [string range $line 0 $ic-1] }
 set line [string trimright $line]
 set prevbrace $brace
 set brace [expr {$line eq "\}" ? 1 : 0}]
-if {($prevbrace==1 || $prevbrace==0) && !$brace} { puts $chano "" }
-if {[set _ [expr {[countChar $line \"] % 2}]]} {set nquote [expr {!$nquote}]}
+if {$prevbrace in {1 0} && !$brace} { puts $chano "" }
+if {[set _ [expr {[countChar $line "\""] % 2}]]} {set nquote [expr {!$nquote}]}
 if {[set _ [string index $line end]] eq "\{"} {set brace 2
 } elseif {$_ eq "\\"} {set brace 2
-if {$nquote} {set line [string range $line 0 end-1]
-} else {set line "[string trimright [string range $line 0 end-1]] "}}
+set line [string range $line 0 end-1]
+if {!$nquote} { set line "[string trimright $line] " }}
 puts -nonewline $chano $line}
 puts $chano "\n#by trimmer"
 close $chani

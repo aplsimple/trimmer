@@ -1,1 +1,1 @@
-package ifneeded trimmer 1.2 [list source [file join $dir trim.tcl]]
+package ifneeded trimmer 1.3 [list source [file join $dir trim.tcl]]
