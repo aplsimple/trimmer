@@ -26,7 +26,7 @@ namespace eval trimmer {
     -i ifile - a file listing .tcl files (#-comments disregarded)
     -o odir - a directory of resulting files (by default ../release)
     app - an application to be run after trimming
-    args - optional arguments of *app*
+    args - optional arguments of `app`
 
  The `-i` (or `--input`) can be multiple, `-o` (or `--output`) can not.
 
@@ -194,7 +194,7 @@ proc trimmer::trimFile {finp fout args} {
     set prevbrace $brace
     set brace [expr {$line eq "\}" ? 1 : 0}]
     if {$prevbrace in {1 0} && !$brace} { puts $chano "" }
-    if {[set _ [expr {[countChar $line "\""] % 2}]]} {
+    if {[expr {[countChar $line "\""] % 2}]} {
       set nquote [expr {!$nquote}]
     }
     if {[set _ [string index $line end]] eq "\{"} {
