@@ -165,7 +165,7 @@ proc batchio::recurseProc {procf dirname pattns} {
   #   dirname - a directory to scan
   #   pattns  - glob patterns of files (devided by " " or ",")
   #
-  # See also: getInputFilesList
+  # See also: getFilesList
 
   foreach dir [glob -nocomplain [file join $dirname *]] {
     if {[file isdirectory $dir]} { recurseProc $procf $dir $pattns }
@@ -181,7 +181,7 @@ proc batchio::recurseProc {procf dirname pattns} {
 
 ###########################################################################
 
-proc batchio::getInputFilesList {ilistN idir globPatt recursive} {
+proc batchio::getFilesList {ilistN idir globPatt recursive} {
 
   # Gets a list of input files.
   #   ilistN    - a name of variable to contain the resulting list
@@ -325,7 +325,7 @@ proc batchio::main {procN globPatt options args} {
   set tmpl [namespace current]::ilistTmp
   foreach idir $iopt {
     set $tmpl {}
-    set rootlist [getInputFilesList $tmpl $idir $globPatt $recursive]
+    set rootlist [getFilesList $tmpl $idir $globPatt $recursive]
     lappend ilistALL {*}[set $tmpl]
     lappend rootlistALL {*}$rootlist
     unset $tmpl
