@@ -70,7 +70,7 @@ catch {file mkdir [file dirname $fout]}
 $procN $finp $fout {*}$args}
 proc batchio::recurseProc {procf dirname pattns} {foreach dir [glob -nocomplain [file join $dirname *]] {if {[file isdirectory $dir]} { recurseProc $procf $dir $pattns }}
 foreach filetempl [split $pattns ", "] {if {![catch { set files [glob -nocomplain [file join $dirname $filetempl]]}]} {foreach f $files { {*}$procf [file normalize $f] }}}}
-proc batchio::getInputFilesList {ilistN idir globPatt recursive} {if {![file exist $idir]} {onError "Input directory/file \"$idir\" does not exist."}
+proc batchio::getFilesList {ilistN idir globPatt recursive} {if {![file exist $idir]} {onError "Input directory/file \"$idir\" does not exist."}
 set root {}
 if {[file isfile $idir]} {set ch [open $idir]
 foreach fin [split [read $ch] \n] {set fin [string trim $fin]
@@ -124,7 +124,7 @@ set ilistALL [set rootlistALL {}]
 set tmpl [namespace current]::ilistTmp
 foreach idir $iopt {
 set $tmpl {}
-set rootlist [getInputFilesList $tmpl $idir $globPatt $recursive]
+set rootlist [getFilesList $tmpl $idir $globPatt $recursive]
 lappend ilistALL {*}[set $tmpl]
 lappend rootlistALL {*}$rootlist
 unset $tmpl}
