@@ -7,7 +7,7 @@
 #
 ###########################################################################
 
-package provide trimmer 1.3
+package provide trimmer 1.4
 
 namespace eval trimmer {
 
@@ -110,11 +110,11 @@ namespace eval trimmer {
 
 ###########################################################################
 
-proc trimmer::countChar {str char} {
+proc trimmer::countCh {str ch} {
 
   # Counts a character in a string.
   #   str - a string
-  #   char - a character
+  #   ch - a character
   #
   # Returns a number of non-escaped occurences of character *char* in
   # string *str*.
@@ -123,7 +123,7 @@ proc trimmer::countChar {str char} {
   # [wiki.tcl-lang.org](https://wiki.tcl-lang.org/page/Reformatting+Tcl+code+indentation)
 
   set icnt 0
-  while {[set idx [string first $char $str]] >= 0} {
+  while {[set idx [string first $ch $str]] >= 0} {
     set backslashes 0
     set nidx $idx
     while {[string equal [string index $str [incr nidx -1]] \\]} {
@@ -154,11 +154,10 @@ proc trimmer::trimFile {finp fout args} {
     return
   }
   set brace [set braceST [set ccmnt -2]]
-  set nquote 0
+  set quoted 0
   while {[gets $chani line] >= 0} {
-    if {$nquote} {
-      set ic -1  ;# multi-line quoted string
-    } else {
+    set ic -1
+    if {!$quoted} {      ;# it's not a multi-line quoted string
       if {$braceST<1} {  ;# check a braced string at some important commands
         foreach {cmd a1} {set "\\S" variable "\\S"} {
           if {[set braceST [regexp "^\\s*$cmd\\s+$a1+\\s+\{" $line]]} {
@@ -169,7 +168,7 @@ proc trimmer::trimFile {finp fout args} {
         }
       }
       if {$braceST>0} {  ;# check matching left/right braces
-        incr cbrc [expr {[countChar $line "\{"] - [countChar $line "\}"]}]
+        incr cbrc [expr {[countCh $line "\{"] - [countCh $line "\}"]}]
         if {$cbrc<=0} {
           set brace [set braceST -1]
         } else {
@@ -183,10 +182,14 @@ proc trimmer::trimFile {finp fout args} {
         set ccmnt $cc  ;# comments continued
         continue
       }
-      set line [string trimleft $line " \t"]
+      set line [string trimleft $line "\t\ "]
       if {$line eq ""} continue
-      set ic [string first ";#" $line]   ;# if ;# in string, ignore the rest
-      if {[countChar [string range $line 0 $ic] "\""] % 2} { set ic -1 }
+      foreach s [regexp -all -inline -indices ";#" $line] {
+        if {[countCh [string range $line 0 [set _ [lindex $s 0]]] "\""]%2==0} {
+          set ic $_   ;# if ";#" not in string, it begins a comment
+          break
+        }
+      }
     }
     if {$ic==0} continue  ;# for comments beginning with ";#" 
     if {$ic>0} { set line [string range $line 0 $ic-1] }
@@ -194,15 +197,13 @@ proc trimmer::trimFile {finp fout args} {
     set prevbrace $brace
     set brace [expr {$line eq "\}" ? 1 : 0}]
     if {$prevbrace in {1 0} && !$brace} { puts $chano "" }
-    if {[expr {[countChar $line "\""] % 2}]} {
-      set nquote [expr {!$nquote}]
-    }
+    if {[countCh $line "\""]%2} { set quoted [expr {!$quoted}] }
     if {[set _ [string index $line end]] eq "\{"} {
       set brace 2           ;# line ending with \{ will join with next line
     } elseif {$_ eq "\\"} {
       set brace 2           ;# the ending "\" should be removed
       set line [string range $line 0 end-1]
-      if {!$nquote} { set line "[string trimright $line] " }
+      if {!$quoted} { set line "[string trimright $line] " }
     }
     puts -nonewline $chano $line
   }
