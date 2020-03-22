@@ -14,19 +14,19 @@
 
   The utility is run using the following syntax:
 
-    tclsh trim.tcl [-i idir|ifile] [-o odir] [-r] [-f] [-n] [--] [app args]
+       tclsh trim.tcl [-i idir|ifile] [-o odir] [-r] [-f] [-n] [--] [app args]
 
   where:
 
-  `idir`  - a directory of files to process (by default `idir=./`)
+  ` idir `  - a directory of files to process (by default `idir=./`)
 
-  `ifile` - a file listing .tcl files (#-comments are ignored)
+  ` ifile ` - a file listing .tcl files (#-comments are ignored)
 
-  `odir`  - a directory of resulting files (by default `odir=../bin`)
+  ` odir `  - a directory of resulting files (by default `odir=../bin`)
 
-  `app`   - an application to be executed after trimming
+  ` app `   - an application to be executed after trimming
 
-  `args`  - optional arguments of the `app`
+  ` args `  - optional arguments of the `app`
 
  The `-i (--input)` can be multiple, `-o (--output)` can not.
 
@@ -42,7 +42,7 @@
 
  Example:
 
-    tclsh trim.tcl -i ./lib -o ./bin tclsh ./bin/main.tcl arg1 "arg 2"
+       tclsh trim.tcl -i ./lib -o ./bin tclsh ./bin/main.tcl arg1 "arg 2"
 
 # Limitations #
 
@@ -53,28 +53,34 @@ The *trim.tcl* sets the following limitations for the code processed:
   exceptions: when `set` and `variable` commands use a braced string, it
   is not trimmed, e.g.
 
-    set str1 {
-        Correct}       ;# equals to set str1 "\n    Correct"
-    variable str2 {
-        Correct}       ;# equals to variable str2 "\n    Correct"
-    puts {
-         Not correct}  ;# equals to puts "Not correct"
+       set str1 "
+          Correct"       ;# equals to set str1 "\n   Correct"
+       set str1 {
+          Correct}       ;# equals to set str1 "\n   Correct"
+       variable str2 "
+          Correct"       ;# equals to variable str2 "\n   Correct"
+       variable str2 {
+          Correct}       ;# equals to variable str2 "\n   Correct"
+       puts "
+          Correct"       ;# equals to puts "\n   Correct"
+       puts {
+           NOT CORRECT}  ;# equals to puts "NOT CORRECT"
 
 **2.** Comments after "{" should begin with ";#", e.g.
 
-    while {true} {  ;# infinite cycle
-    }
+       while {true} {  ;# infinite cycle
+       }
 
 **3.** `List` and `switch` commands can contain comments which are not
   considered to be meaningful items, e.g.
 
-     switch $option {
-        # it's a comment (and the error in standard Tcl switch)
-        -opt1 {
-          puts "-opt1 processed"
-        }
-        # ...
-     }
+       switch $option {
+          # it's a comment (and the error in standard Tcl switch)
+          -opt1 {
+            puts "-opt1 processed"
+          }
+          # ...
+       }
 
  The 1st limitation is rarely encountered and easily overcome with
  \n escape sequences.
@@ -83,14 +89,18 @@ The *trim.tcl* sets the following limitations for the code processed:
 
  The 2nd requires a bit more discipline of coders.
 
- The 3rd eliminates Tcl comment freaks.
+ The 3rd eliminates Tcl comment freaks, incl. unmatched braces.
 
  The *trim.tcl* and *trim_test.tcl* set examples of this in action:
 
-    tclsh trim.tcl -f -o trimmed
+       tclsh trim.tcl -f -o trimmed
+  
+       tclsh trim_test.tcl -f -o trimmed
+  
+       tclsh trimmed/trim.tcl -f -o trimmed
+  
+       tclsh trimmed/trim_test.tcl -f -o trimmed
 
-    tclsh trim_test.tcl -f -o trimmed
+# License #
 
-    tclsh trimmed/trim.tcl -f -o trimmed
-
-    tclsh trimmed/trim_test.tcl -f -o trimmed
+ MIT.

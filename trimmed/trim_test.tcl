@@ -114,25 +114,29 @@ while {[gets $chani line] >= 0} {set ic -1
 if {!$quoted} {if {$braceST<1} {foreach {cmd a1} {set "\\S" variable "\\S"} {if {[set braceST [regexp "^\\s*$cmd\\s+$a1+\\s+\{" $line]]} {set line "\n[string trimleft $line]"
 set cbrc 0
 break}}}
-if {$braceST>0} {incr cbrc [expr {[countCh $line "\{"] - [countCh $line "\}"]}]
+if {$braceST>0} {incr cbrc [ expr {[countCh $line "\{"] - [countCh $line "\}"]} ]
 if {$cbrc<=0} {set brace [set braceST -1]
 } else {puts $chano $line
 continue}}
-if {[regexp "^\\s*;*#" $line] || $ccmnt} {set cc [expr {[string index $line end] eq "\\"}]
+if {[regexp "^\\s*;*#" $line] || $ccmnt} {set cc [ expr {[string index $line end] eq "\\"} ]
 if {($ccmnt || $cc) && $brace<-1} { puts $chano $line }
 set ccmnt $cc
 continue}
 set line [string trimleft $line "\t\ "]
 if {$line eq ""} continue
-foreach s [regexp -all -inline -indices ";#" $line] {if {[countCh [string range $line 0 [set _ [lindex $s 0]]] "\""]%2==0} {set ic $_
-break}}}
+foreach s [regexp -all -inline -indices ";#" $line] {if {[countCh [set _ [string range $line 0 [lindex $s 0]-1]] "\""] % 2 == 0} {set ccmnt [ expr {[string index $line end] eq "\\"} ]
+set line [ string trimright $_ ]
+break}}
+if {$ccmnt} {set brace [set braceST -1]
+puts $chano "\n$line"
+continue}}
 if {$ic==0} continue
 if {$ic>0} { set line [string range $line 0 $ic-1] }
 set line [string trimright $line]
 set prevbrace $brace
-set brace [expr {$line eq "\}" ? 1 : 0}]
+set brace [ expr {$line eq "\}" ? 1 : 0} ]
 if {$prevbrace in {1 0} && !$brace} { puts $chano "" }
-if {[countCh $line "\""]%2} { set quoted [expr {!$quoted}] }
+if {[countCh $line "\""]%2} { set quoted [ expr {!$quoted} ] }
 if {[set _ [string index $line end]] eq "\{"} {set brace 2
 } elseif {$_ eq "\\"} {set brace 2
 set line [string range $line 0 end-1]
