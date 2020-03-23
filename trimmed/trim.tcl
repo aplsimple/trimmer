@@ -4,6 +4,14 @@ namespace eval trimmer {source "[file dirname [info script]]/batchio.tcl"
 variable _ruff_preamble {
  Trimming a Tcl source file off comments and whitespaces.
 
+ ## License
+
+ MIT.
+
+ ## Download
+
+ [trimmer.zip](https://chiselapp.com/user/aplsimple/repository/trimmer/download)
+
  ## Usage
 
      tclsh trim.tcl [-i idir|ifile] [-o odir] [-r] [-f] [-n] [--] [app args]
@@ -88,11 +96,7 @@ variable _ruff_preamble {
 
      tclsh trimmed/trim.tcl -f -o trimmed
 
-     tclsh trimmed/trim_test.tcl -f -o trimmed
-
- ## License
-
-MIT.}}
+tclsh trimmed/trim_test.tcl -f -o trimmed}}
 proc trimmer::countCh {str ch} {set icnt 0
 while {[set idx [string first $ch $str]] >= 0} {set backslashes 0
 set nidx $idx

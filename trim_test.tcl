@@ -36,6 +36,14 @@ namespace eval trimmer {
   variable _ruff_preamble {
  Trimming a Tcl source file off comments and whitespaces.
 
+ ## License
+
+ MIT.
+
+ ## Download
+
+ [trimmer.zip](https://chiselapp.com/user/aplsimple/repository/trimmer/download)
+
  ## Usage
 
      tclsh trim.tcl [-i idir|ifile] [-o odir] [-r] [-f] [-n] [--] [app args]
@@ -120,11 +128,7 @@ namespace eval trimmer {
 
      tclsh trimmed/trim.tcl -f -o trimmed
 
-     tclsh trimmed/trim_test.tcl -f -o trimmed
-
- ## License
-
- MIT.}
+     tclsh trimmed/trim_test.tcl -f -o trimmed}
 
 }
 
@@ -136,7 +140,7 @@ proc trimmer::countCh {str ch} {
   #   str - a string
   #   ch - a character
   #
-  # Returns a number of non-escaped occurences of character *char* in
+  # Returns a number of non-escaped occurences of character *ch* in
   # string *str*.
   #
   # See also:

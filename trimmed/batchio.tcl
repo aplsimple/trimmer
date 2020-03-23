@@ -3,6 +3,10 @@ namespace eval batchio {variable SynShown false
 variable _ruff_preamble {
  Processing a batch of input files to make appropriate output files.
 
+ ## License
+
+ MIT.
+
  ## Usage
 
      tclsh script.tcl [-i idir|ifile] [-o odir] [-r] [-f] [-n] [--] [app args]
@@ -31,11 +35,7 @@ variable _ruff_preamble {
 
  Example:
 
-     tclsh trim.tcl -i ./lib -o ./bin tclsh -f ./bin/main.tcl arg1 "arg 2"
-
- ## License
-
-MIT.}}
+tclsh trim.tcl -i ./lib -o ./bin tclsh -f ./bin/main.tcl arg1 "arg 2"}}
 proc batchio::synopsis {} {variable SynShown
 if {$SynShown} exit {set SynShown true}
 set preamble [namespace parent]::_ruff_preamble

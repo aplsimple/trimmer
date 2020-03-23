@@ -16,6 +16,10 @@ namespace eval batchio {
   variable _ruff_preamble {
  Processing a batch of input files to make appropriate output files.
 
+ ## License
+
+ MIT.
+
  ## Usage
 
      tclsh script.tcl [-i idir|ifile] [-o odir] [-r] [-f] [-n] [--] [app args]
@@ -44,11 +48,7 @@ namespace eval batchio {
 
  Example:
 
-     tclsh trim.tcl -i ./lib -o ./bin tclsh -f ./bin/main.tcl arg1 "arg 2"
-
- ## License
-
- MIT.}
+     tclsh trim.tcl -i ./lib -o ./bin tclsh -f ./bin/main.tcl arg1 "arg 2"}
 
 }
 

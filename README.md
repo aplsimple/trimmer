@@ -10,6 +10,17 @@
   2. needs less a disk volume
   3. if necessary, impedes modifications
 
+
+# License #
+
+ MIT.
+
+
+# Download #
+
+ [trimmer.zip](https://chiselapp.com/user/aplsimple/repository/trimmer/download)
+
+
 # Usage #
 
   The utility is run using the following syntax:
@@ -43,6 +54,7 @@
  Example:
 
        tclsh trim.tcl -i ./lib -o ./bin tclsh ./bin/main.tcl arg1 "arg 2"
+
 
 # Limitations #
 
@@ -100,7 +112,3 @@ The *trim.tcl* sets the following limitations for the code processed:
        tclsh trimmed/trim.tcl -f -o trimmed
   
        tclsh trimmed/trim_test.tcl -f -o trimmed
-
-# License #
-
- MIT.
