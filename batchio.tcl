@@ -31,7 +31,7 @@ namespace eval batchio {
   arguments are:
 
     -i idir - a directory of files to process (by default ./)
-    -i ifile - a file listing .tcl files (#-comments disregarded)
+    -i ifile - a file listing files to process (#-comments disregarded)
     -o odir - a directory of resulting files (by default ../release)
     app - an application to be run after trimming
     args - optional arguments of *app*
@@ -42,7 +42,7 @@ namespace eval batchio {
 
   * If `-r` (or `--recursive`) is set, the input directories are processed recursively. By default, they are processed non-recursively.
 
-  * If `-f` (or `--force`) is set, the existing output file(s) will be rewritten. By default, the *trim.tcl* doesn't rewrite the existing file(s).
+  * If `-f` (or `--force`) is set, the existing output file(s) will be rewritten. By default, the existing file(s) aren't rewritten.
 
   * If `-n` (or `--no`) is set, no real changes made, supposed changes shown only.
 
