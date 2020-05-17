@@ -27,7 +27,7 @@
 
 ###########################################################################
 
-package provide trimmer 1.4
+package provide trimmer 1.4.1
 
 namespace eval trimmer {
 
@@ -180,7 +180,6 @@ proc trimmer::trimFile {finp fout args} {
   set brace [set braceST [set ccmnt -2]]
   set quoted 0
   while {[gets $chani line] >= 0} {
-    set ic -1
     if {!$quoted} {      ;# it's not a multi-line quoted string
       if {$braceST<1} {  ;# check a braced string at some important commands
         foreach {cmd a1} {set "\\S" variable "\\S"} {
@@ -202,7 +201,11 @@ proc trimmer::trimFile {finp fout args} {
       }
       if {[regexp "^\\s*;*#" $line] || $ccmnt} {
         set cc [ expr {[string index $line end] eq "\\"} ]
-        if {($ccmnt || $cc) && $brace<-1} { puts $chano $line }
+        if {($ccmnt || $cc) && $brace<-1} {
+          puts $chano $line  ;# permit 1st comments & their continuations
+        } elseif {[regexp "^\\s*;#" $line]} {
+          puts $chano ";"  ;# this semicolon may be meaningful
+        }
         set ccmnt $cc  ;# comments continued
         continue
       }
@@ -225,8 +228,6 @@ proc trimmer::trimFile {finp fout args} {
         continue
       }
     }
-    if {$ic==0} continue  ;# for comments beginning with ";#" 
-    if {$ic>0} { set line [string range $line 0 $ic-1] }
     set line [string trimright $line]
     set prevbrace $brace
     set brace [ expr {$line eq "\}" ? 1 : 0} ]

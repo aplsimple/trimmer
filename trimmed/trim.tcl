@@ -1,5 +1,5 @@
 #! /usr/bin/env tclsh
-package provide trimmer 1.4
+package provide trimmer 1.4.1
 namespace eval trimmer {source "[file dirname [info script]]/batchio.tcl"
 variable _ruff_preamble {
  Trimming a Tcl source file off comments and whitespaces.
@@ -111,8 +111,7 @@ batchio::onError $e 0
 return}
 set brace [set braceST [set ccmnt -2]]
 set quoted 0
-while {[gets $chani line] >= 0} {set ic -1
-if {!$quoted} {if {$braceST<1} {foreach {cmd a1} {set "\\S" variable "\\S"} {if {[set braceST [regexp "^\\s*$cmd\\s+$a1+\\s+\{" $line]]} {set line "\n[string trimleft $line]"
+while {[gets $chani line] >= 0} {if {!$quoted} {if {$braceST<1} {foreach {cmd a1} {set "\\S" variable "\\S"} {if {[set braceST [regexp "^\\s*$cmd\\s+$a1+\\s+\{" $line]]} {set line "\n[string trimleft $line]"
 set cbrc 0
 break}}}
 if {$braceST>0} {incr cbrc [ expr {[countCh $line "\{"] - [countCh $line "\}"]} ]
@@ -120,7 +119,8 @@ if {$cbrc<=0} {set brace [set braceST -1]
 } else {puts $chano $line
 continue}}
 if {[regexp "^\\s*;*#" $line] || $ccmnt} {set cc [ expr {[string index $line end] eq "\\"} ]
-if {($ccmnt || $cc) && $brace<-1} { puts $chano $line }
+if {($ccmnt || $cc) && $brace<-1} {puts $chano $line
+} elseif {[regexp "^\\s*;#" $line]} {puts $chano ";"}
 set ccmnt $cc
 continue}
 set line [string trimleft $line "\t\ "]
@@ -131,8 +131,6 @@ break}}
 if {$ccmnt} {set brace [set braceST -1]
 puts $chano "\n$line"
 continue}}
-if {$ic==0} continue
-if {$ic>0} { set line [string range $line 0 $ic-1] }
 set line [string trimright $line]
 set prevbrace $brace
 set brace [ expr {$line eq "\}" ? 1 : 0} ]
