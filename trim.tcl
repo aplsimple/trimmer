@@ -26,10 +26,11 @@ namespace eval trimmer {
 
  ## Usage
 
-     tclsh trim.tcl [-i idir|ifile] [-o odir] [-r] [-f] [-n] [--] [app args]
+     tclsh trim.tcl [glob_ptn] [-i idir|ifile] [-o odir] [-r] [-f] [-n] [--] [app args]
 
  where:
 
+    glob_ptn - sets a glob pattern instead of *.tcl that is default
     -i idir - a directory of files to process (by default ./)
     -i ifile - a file listing .tcl files (#-comments disregarded)
     -o odir - a directory of resulting files (by default ../release)
@@ -158,7 +159,7 @@ proc trimmer::trimFile {finp fout args} {
     return
   }
   set brace [set braceST [set ccmnt -2]]
-  set quoted 0
+  set quoted [set cbrc 0]
   while {[gets $chani line] >= 0} {
     if {!$quoted} {      ;# it's not a multi-line quoted string
       if {$braceST<1} {  ;# check a braced string at some important commands
@@ -170,8 +171,10 @@ proc trimmer::trimFile {finp fout args} {
           }
         }
       }
-      if {$braceST>0} {  ;# check matching left/right braces
+      if {$braceST>-2} {
         incr cbrc [ expr {[countCh $line "\{"] - [countCh $line "\}"]} ]
+      }
+      if {$braceST>0} {  ;# check matching left/right braces
         if {$cbrc<=0} {
           set brace [set braceST -1]
         } else {
@@ -181,7 +184,8 @@ proc trimmer::trimFile {finp fout args} {
       }
       if {[regexp "^\\s*;*#" $line] || $ccmnt} {
         set cc [ expr {[string index $line end] eq "\\"} ]
-        if {($ccmnt || $cc) && $brace<-1} {
+        if {($ccmnt || $cc) && $brace!=-2} {
+          if {$cc} {set line "\n$line"}  ;# newline for comments inside braces
           puts $chano $line  ;# permit 1st comments & their continuations
         } elseif {[regexp "^\\s*;#" $line]} {
           puts $chano ";"  ;# this semicolon may be meaningful
@@ -192,7 +196,7 @@ proc trimmer::trimFile {finp fout args} {
       set line [string trimleft $line "\t\ "]
       if {$line eq ""} continue
       foreach s [regexp -all -inline -indices ";#" $line] {
-        if {[countCh \
+        if {$cbrc<=0 && [countCh \
         [set _ [string range $line 0 [lindex $s 0]-1]] \
         "\""] % 2 == 0} { ;# example of continued command
           set ccmnt [ expr {[string index $line end] eq "\\"} ]
@@ -231,7 +235,12 @@ proc trimmer::trimFile {finp fout args} {
 # main program huh
 
 if {[info exist ::argv0] && $::argv0 eq [info script]} {
-  trimmer::batchio::main trimmer::trimFile *.tcl {} {*}$::argv
+  if {[string first "*" [set a1 [lindex $::argv 0]]]<0 && [string first "?" $a1]<0} {
+    trimmer::batchio::main trimmer::trimFile *.tcl {} {*}$::argv
+  } else {
+    # 1st argument sets a glob pattern instead of *.tcl that is default
+    trimmer::batchio::main trimmer::trimFile $a1 {} {*}[lrange $::argv 1 end]
+  }
 }
 
 #-ARGS0:
@@ -242,4 +251,7 @@ if {[info exist ::argv0] && $::argv0 eq [info script]} {
 #-ARGS3: -n -o ../tmp
 #-ARGS4: -n -r
 #-ARGS5: -n
-#ARGS6: -f -o trimmed
+#-ARGS6: -f -o trimmed
+
+#ARGS0: co*.tcl -f -i ~/PG/github/BAK
+#ARGS0: -f -i ~/PG/github/BAK
