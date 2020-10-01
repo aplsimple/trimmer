@@ -158,6 +158,8 @@ proc trimmer::trimFile {finp fout args} {
     batchio::onError $e 0
     return
   }
+  chan configure $chani -encoding utf-8
+  chan configure $chano -encoding utf-8
   set brace [set braceST [set ccmnt -2]]
   set quoted [set cbrc 0]
   while {[gets $chani line] >= 0} {
